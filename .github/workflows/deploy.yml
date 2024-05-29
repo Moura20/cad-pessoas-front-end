@@ -16,26 +16,24 @@ jobs:
       with:
         submodules: true
 
-    - name: Log in to AWS ECR
+    - name: Set up AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: sa-east-1
+
+    - name: Log in to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-      with:
-        registry: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-        region: ${{ secrets.AWS_REGION }}
-        mask-password: false
-        registry-type: private
-        skip-logout: false
 
     - name: Build and push Docker image
       id: build-image
       run: |
         IMAGE_TAG=$(date +%Y%m%d%H%M%S)
-        docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend:$IMAGE_TAG .
-        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend:$IMAGE_TAG
+        docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.sa-east-1.amazonaws.com/frontend:$IMAGE_TAG .
+        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.sa-east-1.amazonaws.com/frontend:$IMAGE_TAG
         echo "::set-output name=image::$IMAGE_TAG"
-      env:
-        AWS_REGION: ${{ secrets.AWS_REGION }}
-        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
     - name: SSH to EC2 and deploy
       uses: appleboy/ssh-action@master
@@ -44,13 +42,13 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          IMAGE_URL=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend:${{ steps.build-image.outputs.image }}
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          IMAGE_URL=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.sa-east-1.amazonaws.com/frontend:${{ steps.build-image.outputs.image }}
+          aws ecr get-login-password --region sa-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.sa-east-1.amazonaws.com
           docker pull $IMAGE_URL
           docker stop frontend || true
           docker rm frontend || true
           docker run -d --name frontend -p 80:80 $IMAGE_URL
       env:
-        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_REGION: sa-east-1
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
