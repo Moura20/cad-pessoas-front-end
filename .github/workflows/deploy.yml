@@ -39,7 +39,7 @@ jobs:
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
+        username: ec2-user
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           IMAGE_URL=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.sa-east-1.amazonaws.com/frontend:${{ steps.build-image.outputs.image }}
