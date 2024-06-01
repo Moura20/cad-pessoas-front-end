@@ -52,7 +52,7 @@ jobs:
           docker pull $IMAGE_URL
           docker stop frontend || true
           docker rm frontend || true
-          docker run -d --name frontend -p 80:80 $IMAGE_URL
+          docker run -d --name frontend -p 80:3000 $IMAGE_URL
       env:
         AWS_REGION: sa-east-1
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
